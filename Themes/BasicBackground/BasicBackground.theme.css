@@ -29,7 +29,7 @@
 	--textshadow:					transparent;				/* default: transparent			(textshadow for text ontop of accentcolor nodes, ONLY accepts a color, no px)	*/
 	--settingsicons:				1;							/* Use Settings Icons in User/Server/Channel Settings: 1 = yes, 0 = no											*/
 	
-	--background:					url(https://i.ibb.co/k9Y1dBg/akali-lol-spirit-blossom-2k-wallpaper-uhdpaper-com-170-1-i.jpg);	/* general background image				*/
+	--background:					url(https://preview.redd.it/11apb13juem91.jpg?width=1080&crop=smart&auto=webp&v=enabled&s=69d1790d114de3a3b5765b4a4492f402be20f368);	/* general background image				*/
 	--backgroundposition:			center;						/* default: center				(position of background - values: [center/top/right/bottom/left])				*/
 	--backgroundsize:				cover;						/* default: cover				(sizefit of background - values: [cover/contain/auto])							*/
 	--backgroundblur:				unset;						/* default: unset				(blur in px, only works when --background is set to an image)					*/
