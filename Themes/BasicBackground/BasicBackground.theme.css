@@ -29,7 +29,7 @@
 	--textshadow:					transparent;				/* default: transparent			(textshadow for text ontop of accentcolor nodes, ONLY accepts a color, no px)	*/
 	--settingsicons:				1;							/* Use Settings Icons in User/Server/Channel Settings: 1 = yes, 0 = no											*/
 	
-	--background:					url(https://preview.redd.it/11apb13juem91.jpg?width=1080&crop=smart&auto=webp&v=enabled&s=69d1790d114de3a3b5765b4a4492f402be20f368);	/* general background image				*/
+	--background:					url(https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/74f328c5-d34b-4cbb-91ac-c5476b15c3eb/dczznaw-1167a0a3-eb58-4bb7-b905-f1c5d399ebf5.jpg/v1/fill/w_1024,h_753,q_75,strp/spider_gwen_alt__by_logancure_dczznaw-fullview.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9NzUzIiwicGF0aCI6IlwvZlwvNzRmMzI4YzUtZDM0Yi00Y2JiLTkxYWMtYzU0NzZiMTVjM2ViXC9kY3p6bmF3LTExNjdhMGEzLWViNTgtNGJiNy1iOTA1LWYxYzVkMzk5ZWJmNS5qcGciLCJ3aWR0aCI6Ijw9MTAyNCJ9XV0sImF1ZCI6WyJ1cm46c2VydmljZTppbWFnZS5vcGVyYXRpb25zIl19.WAEh_aYTSUpckIQHOH7LSuwpfDoHfpjx2bAIO3JLqo0);	/* general background image				*/
 	--backgroundposition:			center;						/* default: center				(position of background - values: [center/top/right/bottom/left])				*/
 	--backgroundsize:				cover;						/* default: cover				(sizefit of background - values: [cover/contain/auto])							*/
 	--backgroundblur:				unset;						/* default: unset				(blur in px, only works when --background is set to an image)					*/
