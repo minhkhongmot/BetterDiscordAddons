@@ -2,7 +2,7 @@
  * @name PluginRepo
  * @author DevilBro
  * @authorId 278543574059057154
- * @version 2.4.6
+ * @version 2.5.0
  * @description Allows you to download all Plugins from BD's Website within Discord
  * @invite Jx3TjNS
  * @donate https://www.paypal.me/MircoWittrien
@@ -484,7 +484,7 @@ module.exports = (_ => {
 														this.props.downloading = true;
 														let loadingToast = BDFDB.NotificationUtils.toast(`${BDFDB.LanguageUtils.LibraryStringsFormat("loading", this.props.data.name)} - ${BDFDB.LanguageUtils.LibraryStrings.please_wait}`, {timeout: 0, ellipsis: true});
 														let autoloadKey = this.props.data.state == pluginStates.OUTDATED ? "startUpdated" : "startDownloaded";
-														BDFDB.DiscordUtils.requestFileData(this.props.data.rawSourceUrl, {timeout: 10000}, (error, buffer) => {
+														BDFDB.DiscordUtils.requestFileData(this.props.data.rawSourceUrl, (error, buffer) => {
 															if (error || !buffer) {
 																delete this.props.downloading;
 																loadingToast.close();
@@ -756,7 +756,7 @@ module.exports = (_ => {
 						delete plugin.release_date;
 						delete plugin.latest_source_url;
 						delete plugin.thumbnail_url;
-						BDFDB.DiscordUtils.requestFileData(plugin.rawSourceUrl, {timeout: 10000}, (error, buffer) => {
+						BDFDB.DiscordUtils.requestFileData(plugin.rawSourceUrl, (error, buffer) => {
 							if (error || !buffer) plugin.failed = true;
 							else {
 								let body = Buffer.from(buffer).toString();
@@ -886,9 +886,9 @@ module.exports = (_ => {
 					case "el":		// Greek
 						return {
 							list:								"Λίστα",
-							notice_failed_plugins:				"Δεν ήταν δυνατή η φόρτωση ορισμένων Plugins [{{var0}}] ",
-							notice_new_plugins:					"Προστέθηκαν νέα Plugins [{{var0}}] στο Plugin Repo",
-							notice_outdated_plugins:			"Ορισμένα Plugins [{{var0}}] είναι παλιά"
+							notice_failed_plugins:				"Δεν ήταν δυνατή η φόρτωση ορισμένων Πρόσθετων [{{var0}}] ",
+							notice_new_plugins:					"Προστέθηκαν νέα Πρόσθετα [{{var0}}] στο Αποθετήριο Προσθέτων",
+							notice_outdated_plugins:			"Ορισμένα Πρόσθετα [{{var0}}] είναι παλαιά"
 						};
 					case "es":		// Spanish
 						return {

@@ -2,7 +2,7 @@
  * @name BDFDB
  * @author DevilBro
  * @authorId 278543574059057154
- * @version 3.2.0
+ * @version 3.2.5
  * @description Required Library for DevilBro's Plugins
  * @invite Jx3TjNS
  * @donate https://www.paypal.me/MircoWittrien
@@ -158,36 +158,49 @@ module.exports = (_ => {
 				if (!url || typeof url != "string") return;
 				let {callback, cIndex} = args[1] && typeof args[1] == "function" ? {callback: args[1], cIndex: 1} : (args[2] && typeof args[2] == "function" ? {callback: args[2], cIndex: 2} : {callback: null, cIndex: -1});
 				if (typeof callback != "function") return;
-				let config = args[0] && typeof args[0] == "object" ? args[0] : (args[1] && typeof args[1] == "object" && args[1]);
-				let timeout = 600000;
-				if (config && config.form && typeof config.form == "object") {
-					let query = Object.entries(config.form).map(n => n[0] + "=" + n[1]).join("&");
-					if (query) {
-						if (uIndex == 0) args[0] += `?${query}`;
-						else if (uIndex == 1) args[1].url += `?${query}`;
+				if (url.indexOf("data:") == 0) callback(null, {
+					aborted: false,
+					complete: true,
+					end: undefined,
+					headers: {"content-type": url.slice(5).split(";")[0]},
+					method: null,
+					rawHeaders: [],
+					statusCode: 200,
+					statusMessage: "OK",
+					url: ""
+				}, url);
+				else {
+					let config = args[0] && typeof args[0] == "object" ? args[0] : (args[1] && typeof args[1] == "object" && args[1]);
+					let timeout = 600000;
+					if (config && config.form && typeof config.form == "object") {
+						let query = Object.entries(config.form).map(n => n[0] + "=" + n[1]).join("&");
+						if (query) {
+							if (uIndex == 0) args[0] += `?${query}`;
+							else if (uIndex == 1) args[1].url += `?${query}`;
+						}
 					}
+					if (config && !isNaN(parseInt(config.timeout)) && config.timeout > 0) timeout = config.timeout;
+					let killed = false, timeoutObj = BDFDB.TimeUtils.timeout(_ => {
+						killed = true;
+						BDFDB.TimeUtils.clear(timeoutObj);
+						callback(new Error(`Request Timeout after ${timeout}ms`), {
+							aborted: false,
+							complete: true,
+							end: undefined,
+							headers: {},
+							method: null,
+							rawHeaders: [],
+							statusCode: 408,
+							statusMessage: "OK",
+							url: ""
+						}, null);
+					}, timeout);
+					args[cIndex] = (...args2) => {
+						BDFDB.TimeUtils.clear(timeoutObj);
+						if (!killed) callback(...args2);
+					};
+					return request(...args);
 				}
-				if (config && !isNaN(parseInt(config.timeout)) && config.timeout > 0) timeout = config.timeout;
-				let killed = false, timeoutObj = BDFDB.TimeUtils.timeout(_ => {
-					killed = true;
-					BDFDB.TimeUtils.clear(timeoutObj);
-					callback(new Error(`Request Timeout after ${timeout}ms`), {
-						aborted: false,
-						complete: true,
-						end: undefined,
-						headers: {},
-						method: null,
-						rawHeaders: [],
-						statusCode: 408,
-						statusMessage: "OK",
-						url: ""
-					}, null);
-				}, timeout);
-				args[cIndex] = (...args2) => {
-					BDFDB.TimeUtils.clear(timeoutObj);
-					if (!killed) callback(...args2);
-				};
-				return request(...args);
 			};
 
 			BDFDB.LogUtils = {};
@@ -1271,6 +1284,16 @@ module.exports = (_ => {
 								else return defaultExport ? r : req.c[i];
 							}
 						}
+						if (config.moduleName && m && m[config.moduleName] && (typeof m[config.moduleName] == "object" || typeof m[config.moduleName] == "function")) {
+							if (!!(r = filter(m[config.moduleName]))) {
+								if (all) found.push(defaultExport ? r : req.c[i]);
+								else return defaultExport ? r : req.c[i];
+							}
+							else if (m[config.moduleName].type && (typeof m[config.moduleName].type == "object" || typeof m[config.moduleName].type == "function") && !!(r = filter(m[config.moduleName].type))) {
+								if (all) found.push(defaultExport ? r : req.c[i]);
+								else return defaultExport ? r : req.c[i];
+							}
+						}
 						if (m && m.__esModule && m.default && (typeof m.default == "object" || typeof m.default == "function")) {
 							if (!!(r = filter(m.default))) {
 								if (all) found.push(defaultExport ? r : req.c[i]);
@@ -2136,7 +2159,7 @@ module.exports = (_ => {
 							if (InternalData.PatchModules[type]) {
 								let found = false;
 								if (!InternalData.PatchModules[type].noSearch && (patchType == "before" || patchType == "after")) {
-									let exports = (BDFDB.ModuleUtils.find(m => Internal.isCorrectModule(m, type) && m, {defaultExport: false}) || {}).exports;
+									let exports = (BDFDB.ModuleUtils.find(m => Internal.isCorrectModule(m, type) && m, {defaultExport: false, moduleName: type}) || {}).exports;
 									if (exports && !exports.default) for (let key of Object.keys(exports)) if (typeof exports[key] == "function" && !(exports[key].prototype && exports[key].prototype.render) && Internal.isCorrectModule(exports[key], type, false) && exports[key].toString().length < 50000) {
 										found = true;
 										BDFDB.PatchUtils.patch(plugin, exports, key, {[patchType]: e => Internal.initiatePatch(plugin, type, {
@@ -2391,49 +2414,48 @@ module.exports = (_ => {
 					return false;
 				};
 				Internal.findModuleViaData = (moduleStorage, dataStorage, item) => {
-					if (dataStorage[item]) {
-						let defaultExport = typeof dataStorage[item].exported != "boolean" ? true : dataStorage[item].exported;
-						if (dataStorage[item].props) moduleStorage[item] = BDFDB.ModuleUtils.findByProperties(dataStorage[item].props, {defaultExport});
-						else if (dataStorage[item].protos) moduleStorage[item] = BDFDB.ModuleUtils.findByPrototypes(dataStorage[item].protos, {defaultExport});
-						else if (dataStorage[item].name) moduleStorage[item] = BDFDB.ModuleUtils.findByName(dataStorage[item].name, {defaultExport});
-						else if (dataStorage[item].strings) {
-							if (dataStorage[item].nonStrings) {
-								moduleStorage[item] = Internal.findModule("strings + nonStrings", JSON.stringify([dataStorage[item].strings, dataStorage[item].nonStrings].flat(10)), m => Internal.checkModuleStrings(m, dataStorage[item].strings) && Internal.checkModuleStrings(m, dataStorage[item].nonStrings, {hasNot: true}) && m, {defaultExport});
-							}
-							else moduleStorage[item] = BDFDB.ModuleUtils.findByString(dataStorage[item].strings, {defaultExport});
+					if (!dataStorage[item]) return;
+					let defaultExport = typeof dataStorage[item].exported != "boolean" ? true : dataStorage[item].exported;
+					if (dataStorage[item].props) moduleStorage[item] = BDFDB.ModuleUtils.findByProperties(dataStorage[item].props, {defaultExport: defaultExport, moduleName: item});
+					else if (dataStorage[item].protos) moduleStorage[item] = BDFDB.ModuleUtils.findByPrototypes(dataStorage[item].protos, {defaultExport: defaultExport, moduleName: item});
+					else if (dataStorage[item].name) moduleStorage[item] = BDFDB.ModuleUtils.findByName(dataStorage[item].name, {defaultExport: defaultExport, moduleName: item});
+					else if (dataStorage[item].strings) {
+						if (dataStorage[item].nonStrings) {
+							moduleStorage[item] = Internal.findModule("strings + nonStrings", JSON.stringify([dataStorage[item].strings, dataStorage[item].nonStrings].flat(10)), m => Internal.checkModuleStrings(m, dataStorage[item].strings) && Internal.checkModuleStrings(m, dataStorage[item].nonStrings, {hasNot: true}) && m, {defaultExport: defaultExport, moduleName: item});
 						}
-						if (dataStorage[item].value) moduleStorage[item] = (moduleStorage[item] || {})[dataStorage[item].value];
-						if (dataStorage[item].assign) moduleStorage[item] = Object.assign({}, moduleStorage[item]);
-						if (moduleStorage[item]) {
-							if (dataStorage[item].funcStrings) moduleStorage[item] = (Object.entries(moduleStorage[item]).find(n => {
-								if (!n || !n[1]) return;
-								let funcString = typeof n[1] == "function" ? n[1].toString() : (_ => {try {return JSON.stringify(n[1])}catch(err){return n[1].toString()}})();
-								let renderFuncString = typeof n[1].render == "function" && n[1].render.toString() || "";
-								return [dataStorage[item].funcStrings].flat(10).filter(s => s && typeof s == "string").every(string => funcString.indexOf(string) > -1 || renderFuncString.indexOf(string) > -1);
-							}) || [])[1];
-							if (dataStorage[item].map) {
-								dataStorage[item]._originalModule = moduleStorage[item];
-								dataStorage[item]._mappedItems = {};
-								moduleStorage[item] = new Proxy(Object.assign({}, dataStorage[item]._originalModule, dataStorage[item].map), {
-									get: function (_, item2) {
-										if (dataStorage[item]._originalModule[item2]) return dataStorage[item]._originalModule[item2];
-										if (dataStorage[item]._mappedItems[item2]) return dataStorage[item]._originalModule[dataStorage[item]._mappedItems[item2]];
-										if (!dataStorage[item].map[item2]) return dataStorage[item]._originalModule[item2];
-										let foundFunc = Object.entries(dataStorage[item]._originalModule).find(n => {
-											if (!n || !n[1]) return;
-											let funcString = typeof n[1] == "function" ? n[1].toString() : (_ => {try {return JSON.stringify(n[1])}catch(err){return n[1].toString()}})();
-											let renderFuncString = typeof n[1].render == "function" && n[1].render.toString() || "";
-											return [dataStorage[item].map[item2]].flat(10).filter(s => s && typeof s == "string").every(string => funcString.indexOf(string) > -1 || renderFuncString.indexOf(string) > -1);
-										});
-										if (foundFunc) {
-											dataStorage[item]._mappedItems[item2] = foundFunc[0];
-											return foundFunc[1];
-										}
-										return "div";
-									}
+						else moduleStorage[item] = BDFDB.ModuleUtils.findByString(dataStorage[item].strings, {defaultExport: defaultExport, moduleName: item});
+					}
+					if (dataStorage[item].value) moduleStorage[item] = (moduleStorage[item] || {})[dataStorage[item].value];
+					if (dataStorage[item].assign) moduleStorage[item] = Object.assign({}, moduleStorage[item]);
+					if (!moduleStorage[item]) return;
+					if (moduleStorage[item][item]) moduleStorage[item] = moduleStorage[item][item];
+					if (dataStorage[item].funcStrings) moduleStorage[item] = (Object.entries(moduleStorage[item]).find(n => {
+						if (!n || !n[1]) return;
+						let funcString = typeof n[1] == "function" ? n[1].toString() : (_ => {try {return JSON.stringify(n[1])}catch(err){return n[1].toString()}})();
+						let renderFuncString = typeof n[1].render == "function" && n[1].render.toString() || "";
+						return [dataStorage[item].funcStrings].flat(10).filter(s => s && typeof s == "string").every(string => funcString.indexOf(string) > -1 || renderFuncString.indexOf(string) > -1);
+					}) || [])[1];
+					if (dataStorage[item].map) {
+						dataStorage[item]._originalModule = moduleStorage[item];
+						dataStorage[item]._mappedItems = {};
+						moduleStorage[item] = new Proxy(Object.assign({}, dataStorage[item]._originalModule, dataStorage[item].map), {
+							get: function (_, item2) {
+								if (dataStorage[item]._originalModule[item2]) return dataStorage[item]._originalModule[item2];
+								if (dataStorage[item]._mappedItems[item2]) return dataStorage[item]._originalModule[dataStorage[item]._mappedItems[item2]];
+								if (!dataStorage[item].map[item2]) return dataStorage[item]._originalModule[item2];
+								let foundFunc = Object.entries(dataStorage[item]._originalModule).find(n => {
+									if (!n || !n[1]) return;
+									let funcString = typeof n[1] == "function" ? n[1].toString() : (_ => {try {return JSON.stringify(n[1])}catch(err){return n[1].toString()}})();
+									let renderFuncString = typeof n[1].render == "function" && n[1].render.toString() || "";
+									return [dataStorage[item].map[item2]].flat(10).filter(s => s && typeof s == "string").every(string => funcString.indexOf(string) > -1 || renderFuncString.indexOf(string) > -1);
 								});
+								if (foundFunc) {
+									dataStorage[item]._mappedItems[item2] = foundFunc[0];
+									return foundFunc[1];
+								}
+								return "div";
 							}
-						}
+						});
 					}
 				};
 				
@@ -2815,6 +2837,7 @@ module.exports = (_ => {
 						return: config.up ? true : false,
 						sibling: config.up ? false : true
 					};
+					let whitelistKeys = Object.keys(whitelist);
 					let blacklist = {
 						contextSection: true
 					};
@@ -2826,7 +2849,7 @@ module.exports = (_ => {
 						depth++;
 						let result = undefined;
 						if (instance && !Node.prototype.isPrototypeOf(instance) && !BDFDB.ReactUtils.getInstance(instance) && depth < maxDepth && performance.now() - start < maxTime) {
-							let keys = Object.keys(instance);
+							let keys = Object.keys(instance).sort((x, y) => whitelistKeys.indexOf(x) < whitelistKeys.indexOf(y) ? -1 : 1);
 							for (let i = 0; result === undefined && i < keys.length; i++) {
 								let key = keys[i];
 								if (key && !blacklist[key]) {
@@ -4091,19 +4114,7 @@ module.exports = (_ => {
 					if (!url || typeof url != "string") return;
 					let {callback, cIndex} = args[1] && typeof args[1] == "function" ? {callback: args[1], cIndex: 1} : (args[2] && typeof args[2] == "function" ? {callback: args[2], cIndex: 2} : {callback: null, cIndex: -1});
 					if (typeof callback != "function") return;
-					
-					let config = args[0] && typeof args[0] == "object" ? args[0] : (args[1] && typeof args[1] == "object" && args[1]);
-					
-					let timeoutMs = config && !isNaN(parseInt(config.timeout)) && config.timeout > 0 ? config.timeout : 600000;
-					let timedout = false, timeout = BDFDB.TimeUtils.timeout(_ => {
-						timedout = true;
-						callback(`Request Timeout after ${timeoutMs}ms`, null)
-					}, timeoutMs);
-					Internal.LibraryModules.FileRequestUtils.getFileData(url).then(buffer => {
-						BDFDB.TimeUtils.clear(timeout);
-						if (timedout) return;
-						callback(null, buffer);
-					});
+					Internal.LibraryModules.FileRequestUtils.getFileData(url).then(buffer => callback(null, buffer)).catch(error => callback(error, null));
 				};
 				BDFDB.DiscordUtils.getSetting = function (category, key) {
 					if (!category || !key) return;
